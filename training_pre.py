@@ -58,7 +58,7 @@ def training_pre(model, dataloaders, dataset_sizes,
             if phase == 'train':
                 model.train()  # Set model to training mode
             else:
-                model.eval()   # Set model to training mode
+                model.eval()   # Set model to eval mode
             batch_loss = 0.0
             
             for lr_data, hr_data in dataloaders[phase]:
