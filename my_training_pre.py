@@ -12,8 +12,8 @@ def main(options):
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
     kwargs = {'num_workers':4,'pin_memory':True} if use_cuda else {}
-    train_dataset = dataset(options.train_file)
-    valid_dataset = dataset(options.valid_file)
+    train_dataset = dataset(options.train_file,options.type)
+    valid_dataset = dataset(options.valid_file,options.type)
 
     lr = 1e-6
     
@@ -36,9 +36,9 @@ def main(options):
         train_loss = train_model(model,device,epoch,optimizer,criterion,train_loader)
         torch.save({'model_state_dict':model.state_dict(),'optimizer_state_dict':optimizer.state_dict()},options.model_prefix + '_{}'.format(epoch))
         valid_loss = valid_model(model,device,criterion,epoch,valid_loader)
-        with open('/nfs/masi/yangq6/CD_DWI/result/train.txt','a') as f:
+        with open(options.train_res,'a') as f:
             f.write('{}\n'.format(train_loss))
-        with open('/nfs/masi/yangq6/CD_DWI/result/valid.txt','a') as f:
+        with open(options.valid_res,'a') as f:
             f.write('{}\n'.format(valid_loss))
 
 
@@ -89,6 +89,9 @@ def get_option(args=sys.argv[1:]):
     parser.add_argument('--epoch',default='',type=int,help='How many epochs which we need to train')
     parser.add_argument('--batch_size',default=2,type=int,help='The batch size we need to feed into model')
     parser.add_argument('--model_prefix',default='',type=str,help='Where to store models')
+    parser.add_argument('--type',default='',type=str,help='The type is used to decide whether is isotropic or not')
+    parser.add_argument('--train_res',default='',type=str,help='The train result file used to save loss')
+    parser.add_argument('--valid_res',default='',type=str,help='The valid result file used to save loss')
 
     options = parser.parse_args(args)
 

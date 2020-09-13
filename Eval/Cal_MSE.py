@@ -4,35 +4,36 @@ import nibabel as nib
 import sys
 from tqdm import tqdm
 
-def main(test_file,infer_folder):
-    test = np.loadtxt(test_file,dtype=str,delimiter=':')
-    infer_folder = '/nfs/masi/yangq6/CD_DWI/infer'
-    mses = 0
-    for HR_file in tqdm(test[:,0]):
-        HR_img = nib.load(HR_file).get_fdata()
-        thre = np.percentile(HR_img,99)
-        HR_img[HR_img > thre] = thre
-        HR_img[HR_img < 0] = 0
-        infer_file = os.path.join(infer_folder,'0_' +  os.path.basename(HR_file))
-        infer_img = nib.load(infer_file).get_fdata() * thre
-        infer_img[infer_img < 0] = 0
-        infer_img[infer_img > thre] = thre
-        mses += np.square(HR_img - infer_img).mean()
-    print('inference',mses / test.shape[0])
-    mses = 0
-    for i in tqdm(range(test.shape[0])):
-        HR_file = test[i,0]
-        LR_file = test[i,1]
-        LR_img = nib.load(LR_file).get_fdata()
-        HR_img = nib.load(HR_file).get_fdata()
-        thre = np.percentile(HR_img,99)
-        HR_img[HR_img > thre] = thre
-        HR_img[HR_img < 0] = 0
-        LR_img[LR_img < 0] = 0
-        LR_img[LR_img > thre] = thre
-        mses += np.square(HR_img - LR_img).mean()
-    print('input',mses / test.shape[0])
-        
+def main(label_dir,output_555_dir,output_225_dir,input_555_dir,input_225_dir):
+    input_555_loss = 0
+    input_225_loss = 0
+    output_555_loss = 0
+    output_225_loss = 0
+
+    for file in tqdm(sorted(os.listdir(label_dir))):
+        label_file = os.path.join(label_dir,file)
+        input_555_file = os.path.join(input_555_dir,file)
+        input_225_file = os.path.join(input_225_dir,file)
+        output_555_file = os.path.join(output_555_dir,file)
+        output_225_file = os.path.join(output_225_dir,file)
+
+        input_555_loss += mse_loss(label_file,input_555_file)
+        input_225_loss = mse_loss(label_file,input_225_file)
+        output_555_loss += mse_loss(label_file,output_555_file)
+        output_225_loss += mse_loss(label_file,output_225_file)
+
+    print('input 225 loss',input_225_loss / len(os.listdir(label_dir)))
+    print('input 555 loss',input_555_loss / len(os.listdir(label_dir)))
+    print('output 225 loss',output_225_loss / len(os.listdir(label_dir)))
+    print('output 555 loss',output_555_loss / len(os.listdir(label_dir)))
+
+def mse_loss(file1,file2):
+    img1 = nib.load(file1).get_fdata()
+    img2 = nib.load(file2).get_fdata()
+
+    return np.square(img1 - img2).mean()
+
+
         
 
 
@@ -40,6 +41,9 @@ def main(test_file,infer_folder):
 
 
 if __name__ == '__main__':
-    test_file = '/nfs/masi/yangq6/CD_DWI/data/test.list'
-    infer_folder = '/nfs/masi/yangq6/CD_DWI/infer'
-    main(test_file,infer_folder)
+    label_dir = '/nfs/masi/yangq6/CD_DWI/eval/norm_label'
+    output_555_dir = '/nfs/masi/yangq6/CD_DWI/eval/norm_output_555'
+    output_225_dir = '/nfs/masi/yangq6/CD_DWI/eval/norm_output_225'
+    input_225_dir = '/nfs/masi/yangq6/CD_DWI/eval/norm_input_225'
+    input_555_dir = '/nfs/masi/yangq6/CD_DWI/eval/norm_input_555'
+    main(label_dir,output_555_dir,output_225_dir,input_555_dir,input_225_dir)

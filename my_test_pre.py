@@ -10,6 +10,7 @@ from my_model_loader import dataset
 from ecbm6040.model.mDCSRN_WGAN import Generator
 from tqdm import tqdm
 import numpy as np
+from my_training_pre import valid_model
 
 def main(options):
     use_cuda = torch.cuda.is_available()
@@ -29,6 +30,9 @@ def main(options):
     model = model.to(device)
     print('begin test')
     test_model(model,test_loader,device,options.save_folder)
+    # print('begin validation')
+    # criterion = nn.L1Loss()
+    # valid_model(model,device,criterion,1,test_loader)
 
 def test_model(model,data_loader,device,save_folder):
     model.eval()
@@ -45,6 +49,7 @@ def test_model(model,data_loader,device,save_folder):
             print(output.shape)
             save_nii_img(HR_nii_file,save_nii_file,output)
             # exit(125)
+
 
 def save_nii_img(HR_nii_file,save_nii_file,output):
     nii = nib.load(HR_nii_file[0])
