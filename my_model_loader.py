@@ -20,7 +20,7 @@ class dataset(Dataset):
         HR_data_file = self.data[ind,0]
         LR_data_file = self.data[ind,1]
 
-        LR_img, HR_img = self.normalize(HR_data_file,LR_data_file)
+        LR_img, HR_img, thre = self.normalize(HR_data_file,LR_data_file)
 
         HR_img_tensor = torch.from_numpy(HR_img).type(torch.FloatTensor) 
         HR_img_tensor = torch.unsqueeze(HR_img_tensor,0)
@@ -28,9 +28,9 @@ class dataset(Dataset):
         LR_img_tensor = torch.from_numpy(LR_img).type(torch.FloatTensor)
         LR_img_tensor = torch.unsqueeze(LR_img_tensor,0)
 
-        return {'data':LR_img_tensor,'label':HR_img_tensor,'nii':HR_data_file}
+        return {'data':LR_img_tensor,'label':HR_img_tensor,'nii':HR_data_file,'thre':thre}
 
-    def normalize(self,HR_data_file,LR_data_file):
+    def normalize_divide_thre(self,HR_data_file,LR_data_file):
         basename = os.path.basename(HR_data_file)
         subj = basename.split('_')[0]
         prefix = 'cdmri00'
@@ -45,7 +45,26 @@ class dataset(Dataset):
         HR_img = HR_img / thre
         # print(np.max(HR_img),np.max(LR_img))
 
-        return LR_img, HR_img
+        return LR_img, HR_img, thre
+
+    def normalize(self,HR_data_file,LR_data_file):
+        basename = os.path.basename(HR_data_file)
+        subj = basename.split('_')[0]
+        prefix = 'cdmri00'
+        anat_mask_file = '/nfs/masi/yangq6/CD_DWI/data/production/{}{}_{}.nii.gz'.format(prefix,subj,self.type)
+        mask = nib.load(anat_mask_file).get_fdata()
+        LR_img = nib.load(LR_data_file).get_fdata()
+        HR_img = nib.load(HR_data_file).get_fdata()
+
+        thre = self.cal_thre(LR_img,mask)
+
+        LR_img = LR_img / thre
+        LR_img[LR_img > 1] = 1
+        HR_img = HR_img / thre
+        HR_img[HR_img > 1] = 1
+        # print(np.max(HR_img),np.max(LR_img))
+
+        return LR_img, HR_img, thre
 
     def cal_thre(self,LR_img,mask):
         thre = np.percentile(LR_img[mask==3],99.99)
@@ -86,7 +105,7 @@ def get_data_file():
     
 if __name__ == '__main__':
     # get_data_file()
-    data_file = '/nfs/masi/yangq6/CD_DWI/data/train.list'
+    data_file = '/nfs/masi/yangq6/CD_DWI/data/train_225.list'
     type = '225'
     data = dataset(data_file,type)
     for i in range(100):

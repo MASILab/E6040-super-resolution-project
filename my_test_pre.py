@@ -16,7 +16,7 @@ def main(options):
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
     kwargs = {'num_workers':4,'pin_memory':True} if use_cuda else {}
-    test_dataset = dataset(options.test_file)
+    test_dataset = dataset(options.test_file,options.type)
 
     lr = 1e-6
     
@@ -41,14 +41,15 @@ def test_model(model,data_loader,device,save_folder):
             HR = sampler['label']
             LR = sampler['data']
             HR_nii_file = sampler['nii']
+            thre = sampler['thre']
             save_nii_file = os.path.join(save_folder + os.path.basename(HR_nii_file[0]))
             print(i,save_nii_file)
             LR = LR.to(device)
             output = model(LR)
             output = np.squeeze(output.cpu().numpy())
-            print(output.shape)
-            save_nii_img(HR_nii_file,save_nii_file,output)
-            # exit(125)
+            print(output.shape,thre)
+            save_nii_img(HR_nii_file,save_nii_file,output * np.array(thre))
+            exit(125)
 
 
 def save_nii_img(HR_nii_file,save_nii_file,output):
@@ -61,6 +62,7 @@ def get_option(args=sys.argv[1:]):
     parser.add_argument('--test_file',default='', type=str,help='The file records test data')
     parser.add_argument('--model_file',default='',type=str,help='Which model file you want to load')
     parser.add_argument('--save_folder',default='',type=str,help='Where to save the tested file')
+    parser.add_argument('--type',default='',type=str,help='isotropic or not isotropic')
 
     options = parser.parse_args(args)
 
